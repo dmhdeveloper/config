@@ -4,8 +4,6 @@ VERSION := $(shell git symbolic-ref -q --short HEAD || git describe --tags --exa
 GIT_HASH := $(shell git rev-parse HEAD)
 BUILD_TIME := $(shell date -u | sed 's| |_|'g)
 
-# git@gitlab.com:personal116/dotfiles.git
-
 .PHONY: run
 run: build
 	./config

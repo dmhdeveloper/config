@@ -1,58 +1,41 @@
 package config
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"os/user"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
-	ConfigFile = ".config/user-config/config.properties"
-)
-
-const (
-	RepositoryKey = "repository"
-	GitDirKey     = "git.dir"
-	WorkTreeKey   = "work.tree"
-	SSHKey        = "ssh.key"
-)
-
-const (
-	defaultWorkTree = "~/"
-	defaultGitDir   = "~/.dotfiles"
-	defaultSSHKey   = "~/.ssh/id_rsa"
+	FileLocation = "~/.config/config-cli/config.yml"
 )
 
 // This is a config file that you create on initiliasation.
 // It stores sensitive data so it is not persisted in a remote repository.
 // When you initialise config, it will create this in `~/.config/user-config/config.properties`
-type UserConfig struct {
-	Repository string
-	GitDir     string
-	WorkTree   string
-	SSHKey     string
+type CLIConfig struct {
+	CLI CLI `yaml:"cli"`
 }
 
-func LoadConfigFile(fileName string) (UserConfig, error) {
-	var conf UserConfig
+type CLI struct {
+	GitDir   string `yaml:"gitDir"`
+	WorkTree string `yaml:"workTree"`
+}
+
+func LoadConfigFile(fileName string) (CLIConfig, error) {
+	var conf CLIConfig
 	c, err := openConfig(fileName, os.O_RDONLY)
 	if errors.Is(err, os.ErrNotExist) {
-		usr, err := user.Current()
+		err = os.MkdirAll(expandHomeDir("~/.config/config-cli"), 0777)
 		if err != nil {
 			return conf, err
 		}
 
-		dir := usr.HomeDir
-		err = os.MkdirAll(fmt.Sprintf("%s/%s", dir, ".config/user-config"), 0777)
-		if err != nil {
-			return conf, err
-		}
-
-		_, err = os.Create(fmt.Sprintf("%s/%s", dir, fileName))
+		_, err = os.Create(expandHomeDir(fileName))
 		if err != nil {
 			return conf, err
 		}
@@ -68,31 +51,11 @@ func LoadConfigFile(fileName string) (UserConfig, error) {
 		return conf, err
 	}
 
-	lines := strings.Split(string(contents), "\n")
-	for _, line := range lines {
-		if strings.TrimSpace(line) == "" {
-			continue
-		}
-		key, value, found := strings.Cut(line, "=")
-		if !found {
-			continue
-		}
-		switch {
-		case strings.TrimSpace(key) == RepositoryKey:
-			conf.Repository = strings.TrimSpace(value)
-		case strings.TrimSpace(key) == GitDirKey:
-			conf.GitDir = strings.TrimSpace(value)
-		case strings.TrimSpace(key) == WorkTreeKey:
-			conf.WorkTree = strings.TrimSpace(value)
-		case strings.TrimSpace(key) == SSHKey:
-			conf.SSHKey = strings.TrimSpace(value)
-		}
-	}
-
+	err = yaml.Unmarshal(contents, &conf)
 	return conf, nil
 }
 
-func UpdateConfigFile(fileName string, conf UserConfig) (UserConfig, error) {
+func UpdateConfigFile(fileName string, conf CLIConfig) (CLIConfig, error) {
 	current, err := LoadConfigFile(fileName)
 	if err != nil {
 		return conf, err
@@ -106,13 +69,19 @@ func UpdateConfigFile(fileName string, conf UserConfig) (UserConfig, error) {
 	if err != nil {
 		return conf, err
 	}
+	defer c.Close()
 
 	err = c.Truncate(0)
 	if err != nil {
 		return conf, err
 	}
 
-	err = writeConfig(c, conf)
+	out, err := yaml.Marshal(&conf)
+	if err != nil {
+		return conf, err
+	}
+
+	_, err = c.Write(out)
 	if err != nil {
 		return conf, err
 	}
@@ -121,49 +90,33 @@ func UpdateConfigFile(fileName string, conf UserConfig) (UserConfig, error) {
 }
 
 func openConfig(fileName string, permissions int) (*os.File, error) {
+	return os.OpenFile(expandHomeDir(fileName), permissions, 0666)
+}
+
+func IsEqual(src CLIConfig, dst CLIConfig) bool {
+	return src.CLI.GitDir == dst.CLI.GitDir &&
+		src.CLI.WorkTree == dst.CLI.WorkTree
+}
+
+func IsEmpty(conf CLIConfig) bool {
+	return strings.TrimSpace(conf.CLI.GitDir) == "" ||
+		strings.TrimSpace(conf.CLI.WorkTree) == ""
+}
+
+func (u CLIConfig) String() string {
+	out, err := yaml.Marshal(&u)
+	if err != nil {
+		return ""
+	}
+	return string(out)
+}
+
+func expandHomeDir(s string) string {
 	usr, err := user.Current()
 	if err != nil {
-		return nil, err
+		return s
 	}
 
 	dir := usr.HomeDir
-	return os.OpenFile(fmt.Sprintf("%s/%s", dir, fileName), permissions, 0666)
-}
-
-func writeConfig(writer io.Writer, conf UserConfig) error {
-	contents := make([]byte, 0)
-	buf := bytes.NewBuffer(contents)
-	buf.WriteString(fmt.Sprintf("%s = %s\n", RepositoryKey, conf.Repository))
-	buf.WriteString(fmt.Sprintf("%s = %s\n", GitDirKey, conf.GitDir))
-	buf.WriteString(fmt.Sprintf("%s = %s\n", WorkTreeKey, conf.WorkTree))
-	buf.WriteString(fmt.Sprintf("%s = %s\n", SSHKey, conf.SSHKey))
-
-	_, err := writer.Write(buf.Bytes())
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func IsEqual(src UserConfig, dst UserConfig) bool {
-	return src.Repository == dst.Repository &&
-		src.GitDir == dst.GitDir &&
-		src.WorkTree == dst.WorkTree &&
-		src.SSHKey == dst.SSHKey
-}
-
-func IsEmpty(conf UserConfig) bool {
-	return strings.TrimSpace(conf.Repository) == "" ||
-		strings.TrimSpace(conf.GitDir) == "" ||
-		strings.TrimSpace(conf.WorkTree) == "" ||
-		strings.TrimSpace(conf.SSHKey) == ""
-}
-
-func (u UserConfig) String() string {
-	var s string
-	s = fmt.Sprintf("%s = %s\n", RepositoryKey, u.Repository)
-	s = fmt.Sprintf("%s%s = %s\n", s, GitDirKey, u.GitDir)
-	s = fmt.Sprintf("%s%s = %s\n", s, WorkTreeKey, u.WorkTree)
-	s = fmt.Sprintf("%s%s = %s", s, SSHKey, u.SSHKey)
-	return s
+	return strings.Replace(s, "~", dir, 1)
 }

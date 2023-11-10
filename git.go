@@ -12,7 +12,20 @@ func InitBareRepo(path string) error {
 	if err == nil {
 		return errors.New("directory already exists, aborting")
 	}
-	return runGit("init", "--bare", path)
+	return RunGit("init", "--bare", path)
+}
+
+func IsUrlSet(gitDir string, url string) bool {
+	_, err := os.Stat(gitDir)
+	if err != nil {
+		return false
+	}
+	cmd := exec.Command("git", "--git-dir", gitDir, "remote", "get-url", "origin")
+	out, err := cmd.Output()
+	if err != nil {
+		return false
+	}
+	return url == string(out)
 }
 
 func ConfigureRemoteForBareRepo(sshKeyPath string, remoteURL string, gitDir string) error {
@@ -22,16 +35,18 @@ func ConfigureRemoteForBareRepo(sshKeyPath string, remoteURL string, gitDir stri
 	default:
 		return errors.New("directory does not exist, aborting")
 	}
-	if err := runGit("--git-dir", gitDir, "remote", "add", "origin", remoteURL); err != nil {
+	if !IsUrlSet(gitDir, remoteURL) {
+		if err := RunGit("--git-dir", gitDir, "remote", "add", "origin", remoteURL); err != nil {
+			return err
+		}
+	}
+	if err := RunGit("--git-dir", gitDir, "config", "--local", "status.showUntrackedFiles", "no"); err != nil {
 		return err
 	}
-	if err := runGit("--git-dir", gitDir, "config", "--local", "status.showUntrackedFiles", "no"); err != nil {
+	if err := RunGit("--git-dir", gitDir, "config", "--local", "core.sshCommand", fmt.Sprintf("ssh -i %s", sshKeyPath)); err != nil {
 		return err
 	}
-	if err := runGit("--git-dir", gitDir, "config", "--local", "core.sshCommand", fmt.Sprintf("ssh -i %s", sshKeyPath)); err != nil {
-		return err
-	}
-	return runGit("--git-dir", gitDir, "fetch", "-p")
+	return RunGit("--git-dir", gitDir, "fetch", "-p")
 }
 
 func ExecuteCommand(workDir string, gitDir string, extraOptions ...string) error {
@@ -40,10 +55,10 @@ func ExecuteCommand(workDir string, gitDir string, extraOptions ...string) error
 		"--work-tree", workDir,
 	}
 	options = append(options, extraOptions...)
-	return runGit(options...)
+	return RunGit(options...)
 }
 
-func runGit(commands ...string) error {
+func RunGit(commands ...string) error {
 	cmd := exec.Command("git", commands...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

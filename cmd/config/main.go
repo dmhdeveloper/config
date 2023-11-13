@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/dmhdeveloper/config"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -47,6 +48,21 @@ func main() {
 		os.Exit(0)
 	case "version", "v":
 		fmt.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))
+		os.Exit(0)
+	case "display":
+		fmt.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))
+		conf, err := config.LoadConfigFile(config.FileLocation)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		contents, err := yaml.Marshal(&conf)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Println(string(contents))
 		os.Exit(0)
 	case "init":
 		err := initFlags.Parse(os.Args[2:])

@@ -15,7 +15,7 @@ func InitBareRepo(path string) error {
 	return RunGit("init", "--bare", path)
 }
 
-func IsUrlSet(gitDir string, url string) bool {
+func IsURLSet(gitDir string, url string) bool {
 	_, err := os.Stat(gitDir)
 	if err != nil {
 		return false
@@ -35,7 +35,7 @@ func ConfigureRemoteForBareRepo(sshKeyPath string, remoteURL string, gitDir stri
 	default:
 		return errors.New("directory does not exist, aborting")
 	}
-	if !IsUrlSet(gitDir, remoteURL) {
+	if !IsURLSet(gitDir, remoteURL) {
 		if err := RunGit("--git-dir", gitDir, "remote", "add", "origin", remoteURL); err != nil {
 			return err
 		}

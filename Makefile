@@ -54,5 +54,5 @@ lint:
 		--rm -it \
 		-w /sources \
 		-v `pwd`:/sources \
-		golangci/golangci-lint:v1.53.3 \
+		golangci/golangci-lint:v1.55.2 \
 		golangci-lint -c .golangci.yml run

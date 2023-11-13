@@ -52,7 +52,7 @@ func LoadConfigFile(fileName string) (CLIConfig, error) {
 	}
 
 	err = yaml.Unmarshal(contents, &conf)
-	return conf, nil
+	return conf, err
 }
 
 func UpdateConfigFile(fileName string, conf CLIConfig) (CLIConfig, error) {

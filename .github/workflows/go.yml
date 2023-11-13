@@ -1,0 +1,33 @@
+name: Go
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: golang:1.21.3-bookworm
+      options: --user 1001
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.3"
+      - name: Build
+        run: make build
+
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: golangci/golangci-lint:v1.55.2
+      options: --user 1001
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.3"
+      - name: Lint
+        run: golangci-lint -c .golangci.yml run

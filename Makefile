@@ -24,6 +24,10 @@ install:
 		-ldflags="-s -w -X main.GitHash=$(GIT_HASH) -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)" \
 		./cmd/config
 
+.PHONY: test
+test:
+	go test ./... -cover -coverprofile=coverage.txt -covermode count -v
+
 .PHONY: generate-release-artifacts
 generate-release-artifacts:
 	make build-release GOOS="darwin" GOARCH="arm64"

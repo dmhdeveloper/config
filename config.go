@@ -1,106 +1,93 @@
 package config
 
 import (
-	"errors"
-	"io"
-	"os"
-	"os/user"
-	"strings"
+	"fmt"
 
 	"gopkg.in/yaml.v3"
 )
 
 const (
-	FileLocation = "~/.config/config-cli/config.yml"
+	ConfigDir = "~/.config/config-cli"
+	GitConfig = "git.yml"
 )
 
-// This is a config file that you create on initiliasation.
-// It stores sensitive data so it is not persisted in a remote repository.
-// When you initialise config, it will create this in `~/.config/user-config/config.properties`
 type CLIConfig struct {
-	CLI CLI `yaml:"cli"`
-}
-
-type CLI struct {
 	GitDir   string `yaml:"gitDir"`
 	WorkTree string `yaml:"workTree"`
 }
 
-func LoadConfigFile(fileName string) (CLIConfig, error) {
-	var conf CLIConfig
-	c, err := openConfig(fileName, os.O_RDONLY)
-	if errors.Is(err, os.ErrNotExist) {
-		err = os.MkdirAll(expandHomeDir("~/.config/config-cli"), 0777)
-		if err != nil {
-			return conf, err
-		}
-
-		_, err = os.Create(expandHomeDir(fileName))
-		if err != nil {
-			return conf, err
-		}
-
-		c, _ = openConfig(fileName, os.O_RDONLY)
-	}
-	if err != nil {
-		return conf, err
-	}
-
-	contents, err := io.ReadAll(c)
-	if err != nil {
-		return conf, err
-	}
-
-	err = yaml.Unmarshal(contents, &conf)
-	return conf, err
+type CLI struct {
+	debug bool
+	log   Logger
+	sys   System
 }
 
-func UpdateConfigFile(fileName string, conf CLIConfig) (CLIConfig, error) {
-	current, err := LoadConfigFile(fileName)
-	if err != nil {
-		return conf, err
+func NewCLI(debug bool, log Logger, sys System) *CLI {
+	return &CLI{
+		debug: debug,
+		log:   log,
+		sys:   sys,
 	}
+}
+
+func (c CLI) LoadGitConfig() CLIConfig {
+	var conf CLIConfig
+	exists, err := c.sys.FileExists(fmt.Sprint(ConfigDir, "/", GitConfig))
+	if err != nil || !exists {
+		if c.debug {
+			c.log.Println(err)
+		}
+		return conf
+	}
+
+	content, err := c.sys.GetFileContent(fmt.Sprint(ConfigDir, "/", GitConfig))
+	if err != nil || len(content) == 0 {
+		if c.debug {
+			c.log.Println(err)
+		}
+		return conf
+	}
+
+	_ = yaml.Unmarshal(content, &conf)
+	return conf
+}
+
+func (c CLI) UpdateConfigFile(fileName string, conf CLIConfig) {
+	var current CLIConfig
+
+	content, err := c.sys.GetFileContent(fileName)
+	if err != nil {
+		if c.debug {
+			c.log.Println(err)
+		}
+		return
+	}
+
+	_ = yaml.Unmarshal(content, &conf)
 
 	if IsEqual(current, conf) {
-		return conf, nil
-	}
-
-	c, err := openConfig(fileName, os.O_WRONLY|os.O_TRUNC)
-	if err != nil {
-		return conf, err
-	}
-	defer c.Close()
-
-	err = c.Truncate(0)
-	if err != nil {
-		return conf, err
+		return
 	}
 
 	out, err := yaml.Marshal(&conf)
 	if err != nil {
-		return conf, err
+		if c.debug {
+			c.log.Println(err)
+		}
+		return
 	}
 
-	_, err = c.Write(out)
+	err = c.sys.WriteFileContent(fileName, out)
 	if err != nil {
-		return conf, err
+		if c.debug {
+			c.log.Println(err)
+		}
 	}
-
-	return conf, nil
-}
-
-func openConfig(fileName string, permissions int) (*os.File, error) {
-	return os.OpenFile(expandHomeDir(fileName), permissions, 0666)
 }
 
 func IsEqual(src CLIConfig, dst CLIConfig) bool {
-	return src.CLI.GitDir == dst.CLI.GitDir &&
-		src.CLI.WorkTree == dst.CLI.WorkTree
-}
-
-func IsEmpty(conf CLIConfig) bool {
-	return strings.TrimSpace(conf.CLI.GitDir) == "" ||
-		strings.TrimSpace(conf.CLI.WorkTree) == ""
+	return src.GitDir == dst.GitDir &&
+		src.WorkTree == dst.WorkTree
 }
 
 func (u CLIConfig) String() string {
@@ -109,14 +96,4 @@ func (u CLIConfig) String() string {
 		return ""
 	}
 	return string(out)
-}
-
-func expandHomeDir(s string) string {
-	usr, err := user.Current()
-	if err != nil {
-		return s
-	}
-
-	dir := usr.HomeDir
-	return strings.Replace(s, "~", dir, 1)
 }

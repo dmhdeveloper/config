@@ -1,70 +1,70 @@
 package config
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"os/exec"
 )
 
-func InitBareRepo(path string) error {
-	_, err := os.Stat(path)
-	if err == nil {
-		return errors.New("directory already exists, aborting")
-	}
-	return RunGit("init", "--bare", path)
+type SCM interface {
+	Init(url string, dir string) bool
+	ConfigureSSHKey(dir string, sshKeyPath string) bool
+	IgnoreUnknownFiles(dir string, ignore bool) bool
 }
 
-func IsURLSet(gitDir string, url string) bool {
-	_, err := os.Stat(gitDir)
-	if err != nil {
-		return false
-	}
-	cmd := exec.Command("git", "--git-dir", gitDir, "remote", "get-url", "origin")
-	out, err := cmd.Output()
-	if err != nil {
-		return false
-	}
-	return url == string(out)
+type Git struct {
+	debug bool
+	log   Logger
+	sys   OS
 }
 
-func ConfigureRemoteForBareRepo(sshKeyPath string, remoteURL string, gitDir string) error {
-	_, err := os.Stat(gitDir)
-	switch err != nil {
-	case errors.Is(err, os.ErrExist):
-	default:
-		return errors.New("directory does not exist, aborting")
+func NewGit(debug bool, log Logger, sys System) *Git {
+	return &Git{
+		debug: debug,
+		log:   log,
+		sys:   sys,
 	}
-	if !IsURLSet(gitDir, remoteURL) {
-		if err := RunGit("--git-dir", gitDir, "remote", "add", "origin", remoteURL); err != nil {
-			return err
+}
+
+func (g Git) Init(url string, dir string) bool {
+	err := g.sys.Run("git", "init", "--bare", dir)
+	if err != nil {
+		if g.debug {
+			g.log.Println(err)
 		}
+		return false
 	}
-	if err := RunGit("--git-dir", gitDir, "config", "--local", "status.showUntrackedFiles", "no"); err != nil {
-		return err
+
+	err = g.sys.Run("git", "--git-dir", dir, "remote", "add", "origin", url)
+	if err != nil {
+		if g.debug {
+			g.log.Println(err)
+		}
+		return false
 	}
-	if err := RunGit("--git-dir", gitDir, "config", "--local", "core.sshCommand", fmt.Sprintf("ssh -i %s", sshKeyPath)); err != nil {
-		return err
-	}
-	return RunGit("--git-dir", gitDir, "fetch", "-p")
+	return true
 }
 
-func ExecuteCommand(workDir string, gitDir string, extraOptions ...string) error {
-	options := []string{
-		"--git-dir", gitDir,
-		"--work-tree", workDir,
+func (g Git) ConfigureSSHKey(gitDir string, sshKeyPath string) bool {
+	err := g.sys.Run("git", "--git-dir", gitDir, "config", "--local", "core.sshCommand", fmt.Sprintf("ssh -i %s", sshKeyPath))
+	if err != nil {
+		if g.debug {
+			g.log.Println(err)
+		}
+		return false
 	}
-	options = append(options, extraOptions...)
-	return RunGit(options...)
+	return true
 }
 
-func RunGit(commands ...string) error {
-	cmd := exec.Command("git", commands...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Start(); err != nil {
-		return err
+func (g Git) IgnoreUnknownFiles(gitDir string, ignore bool) bool {
+	value := "no"
+	if ignore {
+		value = "yes"
 	}
-	return cmd.Wait()
+	err := g.sys.Run("git", "--git-dir", gitDir, "config", "--local", "status.showUntrackedFiles", value)
+	if err != nil {
+		if g.debug {
+			g.log.Println(err)
+		}
+		return false
+	}
+	return true
 }

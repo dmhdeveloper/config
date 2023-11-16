@@ -20,7 +20,10 @@ var (
 	gitDir     *string
 	workTree   *string
 	sshKey     *string
+	debug      *bool
 )
+
+var log = config.StandardLogger{}
 
 var helpMessage = `
 Config CLI is a wrapper for git.
@@ -41,29 +44,27 @@ func main() {
 		os.Exit(0)
 	}
 
+	debugFlagSet := flag.NewFlagSet("debug", flag.ContinueOnError)
+	debug = debugFlagSet.Bool("debug", false, "Output all errors as they are returned from the CLI to stdout")
+	debugFlagSet.Parse(os.Args)
+
 	switch os.Args[1] {
 	case "help":
 		fmt.Println(helpMessage)
 		initFlags.PrintDefaults()
+		debugFlagSet.PrintDefaults()
 		os.Exit(0)
 	case "version", "v":
 		fmt.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))
 		os.Exit(0)
 	case "display":
 		fmt.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))
-		conf, err := config.LoadConfigFile(config.FileLocation)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		system := config.System{}
+		cli := config.NewCLI(*debug, log, system)
+		conf := cli.LoadGitConfig()
 
-		contents, err := yaml.Marshal(&conf)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		contents, _ := yaml.Marshal(&conf)
 		fmt.Println(string(contents))
-		os.Exit(0)
 	case "init":
 		err := initFlags.Parse(os.Args[2:])
 		if err != nil {
@@ -72,52 +73,38 @@ func main() {
 		}
 
 		conf := config.CLIConfig{
-			CLI: config.CLI{
-				GitDir:   *gitDir,
-				WorkTree: *workTree,
-			},
+			GitDir:   *gitDir,
+			WorkTree: *workTree,
 		}
+		system := config.System{}
+		cli := config.NewCLI(*debug, log, system)
 
-		if config.IsEmpty(conf) {
-			fmt.Println("To initialise the CLI, run `config init` with the flags shown below:")
-			initFlags.PrintDefaults()
-			os.Exit(1)
-		}
+		file := fmt.Sprint(config.ConfigDir, "/", config.GitConfig)
+		cli.UpdateConfigFile(file, conf)
 
-		conf, err = config.UpdateConfigFile(config.FileLocation, conf)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		err = config.InitBareRepo(conf.CLI.GitDir)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		err = config.ConfigureRemoteForBareRepo(*sshKey, *repository, conf.CLI.GitDir)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		scm := config.NewGit(*debug, log, system)
+		scm.Init(*repository, conf.GitDir)
+		scm.ConfigureSSHKey(conf.GitDir, *sshKey)
+		scm.IgnoreUnknownFiles(conf.GitDir, true)
 	default:
-		conf, err := config.LoadConfigFile(config.FileLocation)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		system := config.System{}
+		cli := config.NewCLI(*debug, log, system)
+		conf := cli.LoadGitConfig()
 
-		if config.IsEmpty(conf) {
+		if conf.GitDir == "" || conf.WorkTree == "" {
 			fmt.Println("To initialise the CLI, run `config init` with the flags shown below:")
 			initFlags.PrintDefaults()
+			debugFlagSet.PrintDefaults()
 			os.Exit(1)
 		}
 
-		err = config.ExecuteCommand(conf.CLI.WorkTree, conf.CLI.GitDir, os.Args[1:]...)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		params := make([]string, 0)
+		params = append(params, "--git-dir", conf.GitDir)
+		params = append(params, "--work-tree", conf.WorkTree)
+		params = append(params, os.Args[1:]...)
+		system.Run(
+			"git",
+			params...,
+		)
 	}
 }

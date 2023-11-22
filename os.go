@@ -68,6 +68,19 @@ func (s System) RunWithOutput(name string, commands ...string) (string, error) {
 
 func (s System) GetFileContent(file string) ([]byte, error) {
 	var content []byte
+
+	exists, err := s.FileExists(file)
+	if err != nil {
+		return content, err
+	}
+
+	if !exists {
+		_, err = os.Create(file)
+		if err != nil {
+			return content, err
+		}
+	}
+
 	c, err := os.OpenFile(expandHomeDir(file), os.O_RDONLY, 0666)
 	if err != nil {
 		return content, err

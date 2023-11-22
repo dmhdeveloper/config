@@ -33,38 +33,36 @@ To initialise the CLI, run 'config init' with the flags shown below:
 `
 
 func main() {
-	initFlags := flag.NewFlagSet("init", flag.PanicOnError)
+	initFlags := flag.NewFlagSet("init", flag.ExitOnError)
 	repository = initFlags.String("git.url", "", "The git SSH url where your config and dotfiles are stored")
 	gitDir = initFlags.String("git.dir", "~/.dotfiles", "The location to initialise the git bare repo")
 	workTree = initFlags.String("work.tree", "~/", "The root location under which all files that you would like to save in git should be stored")
 	sshKey = initFlags.String("ssh.key", "~/.ssh/id_rsa", "The SSH key used to interact with your private git repository storing your system config")
+	debug = initFlags.Bool("debug", false, "Output all errors as they are returned from the CLI to stdout")
 
-	if len(os.Args) == 0 {
+	if len(os.Args) == 1 {
 		initFlags.PrintDefaults()
 		os.Exit(0)
 	}
 
-	debugFlagSet := flag.NewFlagSet("debug", flag.ContinueOnError)
-	debug = debugFlagSet.Bool("debug", false, "Output all errors as they are returned from the CLI to stdout")
-	debugFlagSet.Parse(os.Args)
+	system := config.System{}
+	scm := config.NewGit(system)
+	cli := config.NewCLI(*debug, log, system, scm)
 
 	switch os.Args[1] {
 	case "help":
 		fmt.Println(helpMessage)
 		initFlags.PrintDefaults()
-		debugFlagSet.PrintDefaults()
 		os.Exit(0)
 	case "version", "v":
-		fmt.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))
+		log.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))
 		os.Exit(0)
 	case "display":
-		fmt.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))
-		system := config.System{}
-		cli := config.NewCLI(*debug, log, system)
+		log.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))
 		conf := cli.LoadGitConfig()
 
 		contents, _ := yaml.Marshal(&conf)
-		fmt.Println(string(contents))
+		log.Println(string(contents))
 	case "init":
 		err := initFlags.Parse(os.Args[2:])
 		if err != nil {
@@ -76,35 +74,26 @@ func main() {
 			GitDir:   *gitDir,
 			WorkTree: *workTree,
 		}
-		system := config.System{}
-		cli := config.NewCLI(*debug, log, system)
 
 		file := fmt.Sprint(config.ConfigDir, "/", config.GitConfig)
-		cli.UpdateConfigFile(file, conf)
+		if ok := cli.UpdateConfigFile(file, conf); !ok {
+			log.Println("failed to update config file")
+			os.Exit(1)
+		}
 
-		scm := config.NewGit(*debug, log, system)
-		scm.Init(*repository, conf.GitDir)
-		scm.ConfigureSSHKey(conf.GitDir, *sshKey)
-		scm.IgnoreUnknownFiles(conf.GitDir, true)
+		if ok := cli.Init(*repository, conf.GitDir, *sshKey); !ok {
+			log.Println("failed to initialise config cli")
+			os.Exit(1)
+		}
 	default:
-		system := config.System{}
-		cli := config.NewCLI(*debug, log, system)
 		conf := cli.LoadGitConfig()
 
 		if conf.GitDir == "" || conf.WorkTree == "" {
 			fmt.Println("To initialise the CLI, run `config init` with the flags shown below:")
 			initFlags.PrintDefaults()
-			debugFlagSet.PrintDefaults()
 			os.Exit(1)
 		}
 
-		params := make([]string, 0)
-		params = append(params, "--git-dir", conf.GitDir)
-		params = append(params, "--work-tree", conf.WorkTree)
-		params = append(params, os.Args[1:]...)
-		system.Run(
-			"git",
-			params...,
-		)
+		cli.Run(conf.GitDir, conf.WorkTree, os.Args[1:]...)
 	}
 }

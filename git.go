@@ -5,66 +5,38 @@ import (
 )
 
 type SCM interface {
-	Init(url string, dir string) bool
-	ConfigureSSHKey(dir string, sshKeyPath string) bool
-	IgnoreUnknownFiles(dir string, ignore bool) bool
+	Init(url string, dir string) error
+	ConfigureSSHKey(dir string, sshKeyPath string) error
+	IgnoreUnknownFiles(dir string, ignore bool) error
 }
 
 type Git struct {
-	debug bool
-	log   Logger
-	sys   OS
+	sys System
 }
 
-func NewGit(debug bool, log Logger, sys System) *Git {
+func NewGit(sys System) *Git {
 	return &Git{
-		debug: debug,
-		log:   log,
-		sys:   sys,
+		sys: sys,
 	}
 }
 
-func (g Git) Init(url string, dir string) bool {
+func (g Git) Init(url string, dir string) error {
 	err := g.sys.Run("git", "init", "--bare", dir)
 	if err != nil {
-		if g.debug {
-			g.log.Println(err)
-		}
-		return false
+		return err
 	}
 
-	err = g.sys.Run("git", "--git-dir", dir, "remote", "add", "origin", url)
-	if err != nil {
-		if g.debug {
-			g.log.Println(err)
-		}
-		return false
-	}
-	return true
+	return g.sys.Run("git", "--git-dir", dir, "remote", "add", "origin", url)
 }
 
-func (g Git) ConfigureSSHKey(gitDir string, sshKeyPath string) bool {
-	err := g.sys.Run("git", "--git-dir", gitDir, "config", "--local", "core.sshCommand", fmt.Sprintf("ssh -i %s", sshKeyPath))
-	if err != nil {
-		if g.debug {
-			g.log.Println(err)
-		}
-		return false
-	}
-	return true
+func (g Git) ConfigureSSHKey(gitDir string, sshKeyPath string) error {
+	return g.sys.Run("git", "--git-dir", gitDir, "config", "--local", "core.sshCommand", fmt.Sprint("ssh -i ", sshKeyPath))
 }
 
-func (g Git) IgnoreUnknownFiles(gitDir string, ignore bool) bool {
+func (g Git) IgnoreUnknownFiles(gitDir string, ignore bool) error {
 	value := "no"
 	if ignore {
 		value = "yes"
 	}
-	err := g.sys.Run("git", "--git-dir", gitDir, "config", "--local", "status.showUntrackedFiles", value)
-	if err != nil {
-		if g.debug {
-			g.log.Println(err)
-		}
-		return false
-	}
-	return true
+	return g.sys.Run("git", "--git-dir", gitDir, "config", "--local", "status.showUntrackedFiles", value)
 }

@@ -14,7 +14,7 @@ build:
 	go build \
 		-v \
 		-ldflags="-s -w -X main.GitHash=$(GIT_HASH) -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)" \
-		./cmd/config
+	  -o bin/ .
 
 .PHONY: install
 install:

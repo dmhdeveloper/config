@@ -20,7 +20,7 @@ cp config /usr/local/bin/
 ### Installing with go
 
 ```sh
-go install github.com/dmhdeveloper/config/cmd/config@latest
+go install github.com/dmhdeveloper/config@latest
 ```
 
 ### Configuring CLI

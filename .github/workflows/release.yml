@@ -1,0 +1,40 @@
+name: "release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  tagged-release:
+    name: "Release"
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.3"
+      - name: "Generate release artifacts"
+        run: make generate-release-artifacts
+      - name: "Generate changelog"
+        id: build_changelog
+        run: |
+          if [ $(git ls-remote --tags | wc -l) -lt 2 ]
+          then
+            git log --oneline --abbrev-commit --no-decorate > commits.txt
+          else
+            LATEST_VERSION=$(git ls-remote --tags --sort tag | tail -n 2 | cut -f2 | cut -d/ -f3 | tail -n 1)
+            PREVIOUS_VERSION=$(git ls-remote --tags --sort tag | tail -n 2 | cut -f2 | cut -d/ -f3 | head -n 1)
+            git log --oneline --abbrev-commit --no-decorate $LATEST_VERSION...$PREVIOUS_VERSION > commits.txt
+          fi
+          sed -i 's/^/- /' commits.txt
+      - uses: softprops/action-gh-release@v1
+        id: create_release
+        with:
+          body_path: commits.txt
+          draft: false
+          prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            config_*

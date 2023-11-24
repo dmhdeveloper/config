@@ -31,6 +31,7 @@ See [CONTRIBUTING.md][3].
 
 - [x] Implement storing and retrieving git config from config file
 - [x] Implement command feature `init`
+- [x] Implement proxying git commands for managing local system config
 - [ ] Implement command feature `display`
 - [ ] Implement command feature `app`
 - [ ] Support shell completion files

@@ -23,7 +23,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	_, err := configs.LoadConfig()
+	conf, err := configs.LoadConfig()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -34,6 +34,7 @@ func main() {
 		command := command.NewInitCmd(log)
 		os.Exit(command.Run(os.Args[2:]...))
 	default:
-		log.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))
+		command := command.NewGitCmd(conf.GitDir, conf.WorkTree, os.Stdout)
+		os.Exit(command.Run(os.Args[1:]...))
 	}
 }

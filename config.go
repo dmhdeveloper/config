@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/user"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -71,4 +72,33 @@ func LoadConfig() (CLIConfig, error) {
 	}
 
 	return conf, nil
+}
+
+func UpdateConfig(conf CLIConfig) (CLIConfig, error) {
+	current, err := LoadConfig()
+	if err != nil {
+		return conf, err
+	}
+
+	// Guard against overwriting usuable values with empty values
+	if strings.TrimSpace(conf.GitDir) != "" {
+		current.GitDir = conf.GitDir
+	}
+	if strings.TrimSpace(conf.WorkTree) != "" {
+		current.WorkTree = conf.WorkTree
+	}
+
+	content, err := yaml.Marshal(current)
+	if err != nil {
+		return conf, err
+	}
+
+	usr, err := user.Current()
+	if err != nil {
+		return conf, err
+	}
+
+	fullPath := fmt.Sprint(usr.HomeDir, "/", configDir, "/", gitConfigFile)
+	err = os.WriteFile(fullPath, content, 0644)
+	return current, err
 }

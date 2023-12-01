@@ -25,7 +25,8 @@ go install github.com/dmhdeveloper/config@latest
 
 ## Roadmap
 
-- [ ] Implement command feature `init`
+- [x] Implement storing and retrieving git config from config file
+- [x] Implement command feature `init`
 - [ ] Implement command feature `display`
 - [ ] Implement command feature `app`
 - [ ] Support shell completion files

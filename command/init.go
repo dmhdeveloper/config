@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"bytes"
@@ -8,6 +8,9 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/dmhdeveloper/config/configs"
+	"github.com/dmhdeveloper/config/logger"
 )
 
 var (
@@ -19,11 +22,11 @@ var (
 )
 
 type InitCmd struct {
-	log   Logger
+	log   logger.Logger
 	flags *flag.FlagSet
 }
 
-func NewInitCmd(log Logger) InitCmd {
+func NewInitCmd(log logger.Logger) InitCmd {
 	flags := flag.NewFlagSet("init", flag.ExitOnError)
 	flags.StringVar(&url, "url", "", "The git remote repository URL that stores your system configuration files.")
 	flags.StringVar(&gitDir, "git.dir", "~/.dotfiles", "The git bare directory location.")
@@ -45,11 +48,11 @@ func (i InitCmd) Run(args ...string) int {
 		return 1
 	}
 
-	conf := CLIConfig{
+	conf := configs.CLIConfig{
 		GitDir:   gitDir,
 		WorkTree: workTree,
 	}
-	_, err = UpdateConfig(conf)
+	_, err = configs.UpdateConfig(conf)
 	if err != nil {
 		if debug {
 			i.log.Println(err)

@@ -3,6 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/dmhdeveloper/config/command"
+	"github.com/dmhdeveloper/config/configs"
+	"github.com/dmhdeveloper/config/logger"
 )
 
 var (
@@ -11,7 +15,7 @@ var (
 	Version   string
 )
 
-var log = FmtLogger{}
+var log = logger.FmtLogger{}
 
 func main() {
 	if len(os.Args) == 1 {
@@ -19,7 +23,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	_, err := LoadConfig()
+	_, err := configs.LoadConfig()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -27,7 +31,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "init":
-		command := NewInitCmd(log)
+		command := command.NewInitCmd(log)
 		os.Exit(command.Run(os.Args[2:]...))
 	default:
 		log.Println(fmt.Sprint("Config version: ", Version, ", Build time: ", BuildTime, ", Git hash: ", GitHash))

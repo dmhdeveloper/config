@@ -14,7 +14,7 @@ build:
 	go build \
 		-v \
 		-ldflags="-s -w -X main.GitHash=$(GIT_HASH) -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)" \
-	  -o bin/ .
+	  -o bin/ ./cmd/config
 
 .PHONY: install
 install:
@@ -22,7 +22,7 @@ install:
 	go build \
 		-v \
 		-ldflags="-s -w -X main.GitHash=$(GIT_HASH) -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)" \
-		.
+		./cmd/config
 
 .PHONY: generate-release-artifacts
 generate-release-artifacts:
@@ -38,11 +38,11 @@ build-release:
 	GOARCH=$(GOARCH) \
 	go build \
 		-ldflags="-s -w -X main.GitHash=$(GIT_HASH) -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME)" \
-		. && mv config bin/config_$(GOOS)-$(GOARCH)
+		-o bin/config_$(GOOS)-$(GOARCH) ./cmd/config
 
 .PHONY: gofmt
 gofmt:
-	gofmt -l -s -w .
+	gofmt -l -s -w ./cmd/config
 
 .PHONY: mod
 mod:

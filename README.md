@@ -14,14 +14,18 @@ To install, either build from source by cloning the repo or using `go install`.
 git clone https://github.com/dmhdeveloper/config.git config
 cd config
 make build
-cp config /usr/local/bin/
+cp bin/config /usr/local/bin/
 ```
 
 ### Installing with go
 
 ```sh
-go install github.com/dmhdeveloper/config@latest
+go install github.com/dmhdeveloper/config/cmd/config@latest
 ```
+
+## Want to contribute
+
+See [CONTRIBUTING.md][3].
 
 ## Roadmap
 
@@ -34,3 +38,4 @@ go install github.com/dmhdeveloper/config@latest
 
 [1]: https://git-scm.com/
 [2]: https://git-scm.com/docs/git-init#Documentation/git-init.txt---bare
+[3]: ./CONTRIBUTING.md

@@ -13,6 +13,8 @@ Banch names are up to the person creating the branch, there is no specific stand
 
 ## Pull requests
 
+To contribute, fork the repository and make the updates in your forked version.
+Once complete, create a pull request to merge your changes from your forked repository into the main repository.
 Pull requests require an approval by the owners of, or contributors to the project.
 The merging strategy is to rebase and merge without a merge commit to keep the main branch clean.
 There is no SLA on how long it will take your pull request to get merged.

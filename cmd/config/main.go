@@ -33,6 +33,9 @@ func main() {
 	case "init":
 		command := command.NewInitCmd(log)
 		os.Exit(command.Run(os.Args[2:]...))
+	case "-h":
+		helpMessage := command.RunHelp(command.InitCmd{}.Help, command.GitCmd{}.Help)
+		log.Println(helpMessage)
 	default:
 		command := command.NewGitCmd(conf.GitDir, conf.WorkTree, os.Stdout)
 		os.Exit(command.Run(os.Args[1:]...))

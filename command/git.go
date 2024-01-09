@@ -2,9 +2,11 @@ package command
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type GitCmd struct {
@@ -59,5 +61,11 @@ func (g GitCmd) Help() string {
 	if err != nil {
 		return err.Error()
 	}
-	return buf.String()
+	return fmt.Sprint(
+		"This is a git wrapper, besides the list of commands above, all other flags are treated as git flags and passed to git.",
+		"\n",
+		"For git commands, see below: ",
+		"\n\n",
+		strings.Replace(buf.String(), "[-h | --help]", "--help", 1),
+	)
 }

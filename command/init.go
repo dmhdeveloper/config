@@ -27,16 +27,21 @@ type InitCmd struct {
 }
 
 func NewInitCmd(log logger.Logger) InitCmd {
+	flags := createInitFlags()
+	return InitCmd{
+		log:   log,
+		flags: flags,
+	}
+}
+
+func createInitFlags() *flag.FlagSet {
 	flags := flag.NewFlagSet("init", flag.ExitOnError)
 	flags.StringVar(&url, "url", "", "The git remote repository URL that stores your system configuration files.")
 	flags.StringVar(&gitDir, "git.dir", "~/.dotfiles", "The git bare directory location.")
 	flags.StringVar(&workTree, "work.tree", "~/", "All system config files should be discoverable within this root directory.")
 	flags.StringVar(&sshKey, "ssh.key", "~/.ssh/id_rsa", "The ssh key used to interact with your git repository storing your configuration files.")
 	flags.BoolVar(&debug, "debug", false, "Output any errors in full during initialisation.")
-	return InitCmd{
-		log:   log,
-		flags: flags,
-	}
+	return flags
 }
 
 func (i InitCmd) Run(args ...string) int {
@@ -107,10 +112,11 @@ func (i InitCmd) Run(args ...string) int {
 }
 
 func (i InitCmd) Help() string {
+	flags := createInitFlags()
 	buf := bytes.NewBuffer(make([]byte, 0))
-	i.flags.SetOutput(buf)
-	i.flags.PrintDefaults()
-	return buf.String()
+	flags.SetOutput(buf)
+	flags.PrintDefaults()
+	return fmt.Sprint("usage: config init <flags>", "\n\n", buf.String())
 }
 
 func runGit(out io.Writer, args ...string) error {

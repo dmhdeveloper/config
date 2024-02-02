@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dmhdeveloper/config/command"
-	"github.com/dmhdeveloper/config/configs"
-	"github.com/dmhdeveloper/config/logger"
+	"github.com/dmhdeveloper/config/internal/cli"
+	"github.com/dmhdeveloper/config/internal/command"
+	"github.com/dmhdeveloper/config/internal/logger"
 )
 
 var (
@@ -23,7 +23,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	conf, err := configs.LoadConfig()
+	conf, err := cli.LoadConfig()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

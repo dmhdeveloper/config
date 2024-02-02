@@ -9,8 +9,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/dmhdeveloper/config/configs"
-	"github.com/dmhdeveloper/config/logger"
+	"github.com/dmhdeveloper/config/internal/cli"
+	"github.com/dmhdeveloper/config/internal/logger"
 )
 
 var (
@@ -53,11 +53,11 @@ func (i InitCmd) Run(args ...string) int {
 		return 1
 	}
 
-	conf := configs.CLIConfig{
+	conf := cli.CLIConfig{
 		GitDir:   gitDir,
 		WorkTree: workTree,
 	}
-	_, err = configs.UpdateConfig(conf)
+	_, err = cli.UpdateConfig(conf)
 	if err != nil {
 		if debug {
 			i.log.Println(err)

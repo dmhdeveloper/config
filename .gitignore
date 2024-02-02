@@ -2,3 +2,5 @@ bin/
 /config
 /config_*
 coverage.txt
+completion/cfg
+*.log

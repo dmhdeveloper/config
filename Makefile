@@ -53,6 +53,6 @@ lint:
 	docker run \
 		--rm -it \
 		-w /sources \
-		-v `pwd`:/sources \
-		golangci/golangci-lint:v1.55.2 \
+		-v $(shell PWD):/sources \
+		golangci/golangci-lint:v1.59.1 \
 		golangci-lint -c .golangci.yml run

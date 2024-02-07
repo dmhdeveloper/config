@@ -15,13 +15,13 @@ const (
 	gitConfigFile = "git.yaml"
 )
 
-type CLIConfig struct {
+type Config struct {
 	GitDir   string `yaml:"gitDir"`
 	WorkTree string `yaml:"workTree"`
 }
 
-func LoadConfig() (CLIConfig, error) {
-	var conf CLIConfig
+func LoadConfig() (Config, error) {
+	var conf Config
 	usr, err := user.Current()
 	if err != nil {
 		return conf, err
@@ -74,7 +74,7 @@ func LoadConfig() (CLIConfig, error) {
 	return conf, nil
 }
 
-func UpdateConfig(conf CLIConfig) (CLIConfig, error) {
+func UpdateConfig(conf Config) (Config, error) {
 	current, err := LoadConfig()
 	if err != nil {
 		return conf, err

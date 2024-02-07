@@ -1,5 +1,7 @@
 package command
 
+import "fmt"
+
 const (
 	bashBaseDir = "/usr/share/bash-completion/completions/"
 	zshBaseDir  = "/usr/share/zsh/site-functions/"
@@ -12,9 +14,10 @@ func NewCompletionCmd() CompletionCmd {
 }
 
 func (c CompletionCmd) Run(args ...string) int {
+	fmt.Println(args)
 	return 0
 }
 
 func (c CompletionCmd) Help() string {
-	return ""
+	return fmt.Sprint(bashBaseDir, zshBaseDir)
 }

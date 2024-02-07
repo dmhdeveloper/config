@@ -53,7 +53,7 @@ func (i InitCmd) Run(args ...string) int {
 		return 1
 	}
 
-	conf := cli.CLIConfig{
+	conf := cli.Config{
 		GitDir:   gitDir,
 		WorkTree: workTree,
 	}

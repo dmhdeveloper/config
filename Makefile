@@ -42,7 +42,7 @@ build-release:
 
 .PHONY: gofmt
 gofmt:
-	gofmt -l -s -w ./cmd/config
+	gofmt -l -s -w ./cmd/config ./pkg
 
 .PHONY: mod
 mod:

@@ -2,12 +2,9 @@ package configs
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/user"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -15,13 +12,13 @@ const (
 	gitConfigFile = "git.yaml"
 )
 
-type CLIConfig struct {
+type Git struct {
 	GitDir   string `yaml:"gitDir"`
 	WorkTree string `yaml:"workTree"`
 }
 
-func LoadConfig() (CLIConfig, error) {
-	var conf CLIConfig
+func LoadGitConfig() (Git, error) {
+	var conf Git
 	usr, err := user.Current()
 	if err != nil {
 		return conf, err
@@ -35,47 +32,23 @@ func LoadConfig() (CLIConfig, error) {
 			return conf, err
 		}
 
-		fi, err := os.Create(fullPath)
+		_, err := os.Create(fullPath)
 		if err != nil {
 			return conf, err
 		}
 
-		contents, err := yaml.Marshal(conf)
-		if err != nil {
-			return conf, err
-		}
-
-		_, err = fi.Write(contents)
-		if err != nil {
-			return conf, err
-		}
-
-		err = fi.Close()
+		err = write(fullPath, &conf)
 		if err != nil {
 			return conf, err
 		}
 	}
 
-	fi, err := os.Open(fullPath)
-	if err != nil {
-		return conf, err
-	}
-
-	contents, err := io.ReadAll(fi)
-	if err != nil {
-		return conf, err
-	}
-
-	err = yaml.Unmarshal(contents, &conf)
-	if err != nil {
-		return conf, err
-	}
-
-	return conf, nil
+	err = read(fullPath, &conf)
+	return conf, err
 }
 
-func UpdateConfig(conf CLIConfig) (CLIConfig, error) {
-	current, err := LoadConfig()
+func UpdateGitConfig(conf Git) (Git, error) {
+	current, err := LoadGitConfig()
 	if err != nil {
 		return conf, err
 	}
@@ -88,17 +61,12 @@ func UpdateConfig(conf CLIConfig) (CLIConfig, error) {
 		current.WorkTree = conf.WorkTree
 	}
 
-	content, err := yaml.Marshal(current)
-	if err != nil {
-		return conf, err
-	}
-
 	usr, err := user.Current()
 	if err != nil {
 		return conf, err
 	}
 
 	fullPath := fmt.Sprint(usr.HomeDir, "/", configDir, "/", gitConfigFile)
-	err = os.WriteFile(fullPath, content, 0644)
+	err = write(fullPath, &current)
 	return current, err
 }

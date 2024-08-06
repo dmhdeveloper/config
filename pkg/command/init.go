@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/dmhdeveloper/config/pkg/configs"
+	"github.com/dmhdeveloper/cfg/pkg/configs"
 )
 
 func RunInit(

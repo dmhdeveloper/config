@@ -1,4 +1,4 @@
-module github.com/dmhdeveloper/config
+module github.com/dmhdeveloper/cfg
 
 go 1.21
 

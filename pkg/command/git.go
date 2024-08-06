@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/dmhdeveloper/config/pkg/configs"
+	"github.com/dmhdeveloper/cfg/pkg/configs"
 )
 
 func RunGit(

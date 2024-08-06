@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dmhdeveloper/config/pkg/cli"
+	"github.com/dmhdeveloper/cfg/pkg/cli"
 )
 
 var (

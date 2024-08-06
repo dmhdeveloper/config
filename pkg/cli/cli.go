@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/dmhdeveloper/config/pkg/command"
+	"github.com/dmhdeveloper/cfg/pkg/command"
 )
 
 const helpMessage = `

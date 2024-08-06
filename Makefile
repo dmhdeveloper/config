@@ -55,4 +55,4 @@ lint:
 		-w /sources \
 		-v $(shell PWD):/sources \
 		golangci/golangci-lint:v1.59.1 \
-		golangci-lint -c .golangci.yml run
+		golangci-lint -v -c .golangci.yml run
